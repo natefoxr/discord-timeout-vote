@@ -26,9 +26,12 @@ async def bye(ctx, username: str):
         await ctx.send(f"User {username} not found.")
         return
 
-    if ctx.author.voice and ctx.author.voice.channel:
+    if ctx.author.voice and ctx.author.voice.channel and (len(ctx.author.voice.channel.members) > 2):
         voice_channel = ctx.author.voice.channel
-        voice_client = await voice_channel.connect()
+        voice_client = await voice_channel.connect()    
+
+        members = [member for member in voice_channel.members if member.id not in excluded_user_ids]
+        non_excluded_count = len(members)
 
         # Start the poll
         polls[ctx.guild.id] = {"target": member, "votes": set(), "voice_client": voice_client}
@@ -36,7 +39,7 @@ async def bye(ctx, username: str):
         await ctx.send(f"A poll has started to timeout {username}. Type 'yes' in this channel to vote.")
 
         # Wait for the poll to complete
-        while len(polls[ctx.guild.id]["votes"]) < (len(voice_channel.members) - 2):
+        while len(polls[ctx.guild.id]["votes"]) < (len(voice_channel.non_excluded_count) - 2):
             try:
                 message = await bot.wait_for("message", timeout=10.0)
                 if message.content.lower() == "yes" and message.author in voice_channel.members:
@@ -47,15 +50,13 @@ async def bye(ctx, username: str):
             except asyncio.TimeoutError:
                 await ctx.send("Poll timed out.")
                 break
-        members = [member for member in voice_channel.members if member.id not in excluded_user_ids]
-        non_excluded_count = len(members)
         if len(polls[ctx.guild.id]["votes"]) >= (non_excluded_count - 2):
             await ctx.send(f"{username} has been timed out!")
             await member.edit(timed_out_until=utcnow() + timedelta(minutes=.1))
         await voice_client.disconnect()
         del polls[ctx.guild.id]
     else:
-        await ctx.send("You must be in a voice channel to initiate the vote.")
+        await ctx.send("You must be in a voice channel and have more than two people in the channel to initiate the vote.")
 
 async def play_yes_sound(voice_client):
     audio_source = discord.FFmpegPCMAudio('sound.mp3')
