@@ -39,7 +39,7 @@ async def bye(ctx, username: str):
         await ctx.send(f"A poll has started to timeout {username}. Type 'yes' in this channel to vote.")
 
         # Wait for the poll to complete
-        while len(polls[ctx.guild.id]["votes"]) < (len(voice_channel.non_excluded_count) - 2):
+        while len(polls[ctx.guild.id]["votes"]) < (non_excluded_count - 2):
             try:
                 message = await bot.wait_for("message", timeout=10.0)
                 if message.content.lower() == "yes" and message.author in voice_channel.members:
